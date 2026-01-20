@@ -1,0 +1,169 @@
+Yemen Economic Transparency Observatory – Final Deliverables Plan (2026)
+
+Introduction
+
+This document outlines the final deliverables for the Yemen Economic Transparency Observatory (YETO) platform.  It synthesises the January 2026 master registry, methodological guidance, and expanded source list to produce an actionable implementation plan.  It explains what needs to be delivered (data registry, documentation, AI prompts, dynamic ingestion and monitoring systems) and how it should be built and maintained using YETO’s architecture.  The goal is to create a living platform that provides rigorous, bilingual and transparent economic and humanitarian data for Yemen, making it a reference point for researchers, policymakers and the public.  The plan emphasises completeness, accuracy, continuous updating, compliance with licensing and sanctions restrictions, and dynamic learning through AI agents.
+
+Part 1: Comprehensive Source Registry & Data Integration
+
+Objective: compile a definitive, structured registry of all data sources, documents and event streams necessary to support YETO’s sitemap.  Align each source with the appropriate platform module (e.g., Dashboard, Sector pages, Timeline, Glossary, Research Library) and provide ingestion instructions.  This registry forms the backbone of YETO’s data layer.
+
+1.1 Master Registry Table
+
+Deliver a machine‑readable table (CSV or database table) containing the following columns:
+Field	Description
+Sector	The sitemap category or thematic page where the data will appear (e.g. Macroeconomy, Banking & Finance, Food Security, Aid Flows).  Use YETO’s sector hierarchy to ensure coverage across all economic and social sectors listed on the site.
+Name / Institution	Formal title of the data source or document set (e.g., World Bank PovcalNet, WFP Market Monitor, UNHCR Population Statistics).  Include both the organisation and the dataset/report name.
+Category	Type of data: quantitative (numeric time series), narrative (reports, analyses), event (conflict incidents), proxy (remote sensing), compliance (sanctions).
+Tier	Scope: Global, Regional, National or Local / Partner.  Also indicate split‑regime tags (IRG vs DFA) where relevant.
+URL/Access Method	Direct link or API endpoint for data retrieval.  Include notes on authentication (API keys) and fallback procedures (manual upload) where automation is not possible.
+Update Frequency	Expected cadence (e.g., daily, monthly, quarterly, annual, ad hoc).  This informs the scheduler for ingestion tasks.
+Licensing / Terms	Specify licence (CC BY, proprietary, needs key).  Note restrictions (e.g., ACLED data cannot be downloaded publicly).
+Reliability Score	Assign an initial confidence grade (A–D) based on the January 2026 guidance.  Official audited data = A; partial official data = B; modelled estimates or proxies = C; disputed or unofficial = D.
+Coverage	Time period and geographic scope (2010–present by default).  Note gaps or limitations (e.g., national only, missing years, no subnational breakdown).
+Auth/Credentials	Required API keys or subscription notes.  Mark as needs_key for subscription sources such as Oxford Economics.
+Data Fields	Describe the expected columns or variables (e.g., date, indicator code, value, location).  For narrative sources, list metadata fields (title, author, date, URL).  For event data, list location and actor fields.
+Ingestion Method	Indicate whether the data will be ingested via API, bulk download, web scraping, manual upload, or partner portal.  Provide notes on parsing PDF tables, OCR for scanned documents, or remote sensing processing (night‑lights).
+YETO Usage & Module Integration	Map each source to YETO modules: Dashboard, Data Repository, Research & Reports, Sector pages, Timeline, Glossary, Transparency page.  Also note derived indicators or composite indices that will use this data.
+Granularity & Caveats	Document resolution (national vs governorate vs district) and known caveats (e.g. ACLED fatality counts are estimates; UCDP data is annual).
+Status	Active, Pending (awaiting key), or Metadata‑only.  Active sources must have ingestion pipelines built; pending sources remain in the registry but cannot be queried until credentials are obtained.
+
+Action: populate this table with all sources listed in the January 2026 registry (over 100 entries) and any additional credible datasets discovered since then.  Use the extended tables provided in the user files as a starting point.  Each row should be complete and should reference the relevant sector pages that appear on the YETO landing page.
+
+1.2 Data Ingestion & Scheduling
+	•	Build ingestion connectors for each source using the methods specified in the registry.  For API‑based sources (World Bank, IMF, IATI, UNHCR, etc.), implement REST or SDMX clients that handle pagination, rate limits and retries.  For file‑based sources (e.g., UNCTADstat CSVs, IMF PDF tables), implement ETL scripts using Python to download, parse and normalise the data.  Use open‑source libraries (e.g., pandas, tabula for PDFs) and annotate each transformation in the provenance ledger.
+	•	Integrate YETO’s scheduler to trigger jobs at appropriate frequencies.  Daily sources (FTS flows, ReliefWeb, sanctions) should run every 24 hours; weekly sources (ACLED) should run after the weekly release; monthly sources (WFP Market Monitor) should run ~30 days after the reporting month; quarterly or annual sources should run at the times indicated in the registry.  Stagger jobs to avoid API rate limits.
+	•	For split‑regime sources (IRG vs DFA), store data in separate series and tag them accordingly.  Ensure the platform can display both sets side by side rather than mixing them.
+	•	Implement checks to detect and log missing updates.  If a source fails to deliver data within 1.5× its expected update frequency, create a Data Gap Ticket describing the missing information, its importance, and potential alternatives.  Display a “Data pending” message on the affected UI components.
+
+1.3 Quality Assurance & Provenance
+	•	Enforce the rule that every number has a home: attach metadata (source ID, retrieval timestamp, license, retrieval method) to each observation.  Maintain a provenance ledger that logs extraction method, transformations, validation results and confidence rating for each dataset.
+	•	Implement automated validation rules:
+	•	Schema validation: confirm that each dataset matches the expected schema (no text in numeric columns, mandatory fields present).
+	•	Unit normalisation: convert currencies and units where necessary; document conversions.
+	•	Outlier detection: flag values that deviate beyond statistical thresholds.  If flagged, set the dataset status to “Under review” and require manual approval via the admin QA dashboard.
+	•	Continuity and coverage checks: ensure expected time periods and geographies are present; flag missing months/years/governorates.
+	•	Contradiction detection: identify when two sources provide conflicting figures for the same indicator.  Rather than averaging, mark both and display them with explanatory notes.  For high‑stakes metrics like inflation and exchange rate, ensure at least two independent series are ingested and available for comparison.
+	•	Assign initial reliability grades automatically based on the source type and update them after manual review.  Display confidence badges on the user interface so users can gauge data certainty.
+	•	Support versioning.  Do not overwrite old data; store new values as separate versions with timestamps.  Provide a diff viewer to compare vintages.
+
+1.4 Bilingual Metadata & Glossary Enforcement
+	•	All metadata (source names, descriptions, indicator names) must be stored in both Arabic and English.  Use YETO’s translation engine and controlled glossary to generate consistent translations.  If new terms appear, update the glossary after review and propagate the corrections across the platform.
+	•	Provide UI toggles to switch between languages.  Ensure right‑to‑left layout for Arabic and left‑to‑right for English.  Display both languages side by side where space permits (e.g., in chart labels and table headers).
+
+1.5 Data Catalogue & Transparency Pages
+	•	Create a Data Catalogue page that lists every dataset in the registry along with its metadata (source, coverage, update date, license, reliability grade, and last update).  Include filters by sector, source type, and reliability grade.
+	•	Provide a Provenance Ledger page where advanced users can view the lineage of each dataset, including transformations and version history.
+	•	Maintain an ongoing Changelog page recording when sources were added, modified or removed, and summarising any methodological changes.
+
+Part 2: Methodology & Policy Documentation
+
+Objective: document YETO’s data processes, quality assurance, translation policies, and governance rules.  Provide clear instructions for data stewards and end users to understand how the system functions.
+
+2.1 Methodology Manual
+	•	Write a detailed methodology manual describing data classification (quantitative, narrative, event), ingestion pipeline architecture, provenance tracking, validation and contradiction handling.  This manual should summarise the long description of YETO’s methodology and data quality assurance provided in the January 2026 prompt.
+	•	Include definitions and formulas for all indicators displayed on the platform, such as GDP growth, inflation, exchange rates, humanitarian aid flows and night‑lights indices.  Note the sources used to compute derived indicators.
+	•	Provide guidelines on assigning reliability grades (A–D) and on documenting data gaps.
+	•	Document the translation workflow and controlled glossary policy.  Explain the machine translation process, human review steps and consistency checks.
+
+2.2 Privacy & Compliance Policies
+	•	Write a data privacy policy clarifying that YETO does not collect personal data and that published information is aggregated or based on publicly available sources.  Confirm compliance with Do‑No‑Harm principles (no personally identifiable information or sensitive geolocation where it could endanger individuals).
+	•	Provide a sanctions & compliance statement.  The platform must display UN, US, EU and UK sanctions lists relevant to Yemen, but only as factual data and without advising on evasion.  Include necessary legal notices and emphasise that YETO does not provide legal advice.
+	•	Document content licensing obligations.  For each source, include a citation style (e.g., CC BY attribution text) to be displayed on data pages.  For proprietary or sensitive sources like ACLED or Janes, document restrictions on redistribution and highlight them in the admin portal.
+
+2.3 Governance & Data Stewardship
+	•	Define roles and responsibilities: data stewards, administrators, QA reviewers, translators, and developers.  Specify tasks such as reviewing new sources, handling data gap tickets, approving manual entries, updating the glossary, and overseeing version control.
+	•	Establish a review workflow for new or updated sources: sources discovered by the automated discovery engine should populate a review queue in the admin portal.  Data stewards evaluate credibility, confirm coverage, and either approve or reject the source.  Approved sources are then added to the master registry and scheduled for ingestion.
+	•	Provide guidelines for the Data Gap Ticket system.  Describe how the system auto‑generates tickets when updates are missing or when user feedback flags an error.  Outline how stewards triage and resolve these tickets.
+
+2.4 Site Map & Content Coverage
+	•	Ensure the sitemap covers all thematic portals listed on the YETO landing page: Dashboard, Data Repository, Research & Reports, Economic Sectors (Trade & Commerce, Local Economy, Rural Development, Banking & Finance, Currency & Exchange, Food Security, Energy & Fuel, Aid Flows, Poverty & Development, Labour Market, Infrastructure, Conflict Economy, Public Finance, Investment, Prices & Cost of Living), Timeline, Glossary & Methodology, Data Quality & Transparency, Legal & Policies, Admin / Contributor portals, and any additional sections needed.  The expanded registry must support each of these pages with data sources.
+	•	For each page, map the sources and define the key indicators to display.  Example: the Banking & Finance page should combine data from CBY official rates, market rates, IFS money supply, microfinance data, sanctions information and news bulletins.  The Prices & Cost of Living page should aggregate WFP Market Monitor prices, fuel bulletins, exchange rates and CPI proxies.  The Timeline should integrate events from ACLED, UCDP, UN Sanctions, policy announcements and economic shocks.
+
+Part 3: AI Agents, Prompts & Dynamic Functionality
+
+Objective: design and implement intelligent agents that power the dynamic, interactive aspects of YETO.  This includes the Manus ingestion agent, the Maher AI founder assistant, sector‑specific AI specialists and the user‑facing conversational assistant.  Provide detailed prompt engineering instructions to ensure accurate, transparent and context‑aware AI behaviour.
+
+3.1 Manus – Ingestion & ETL Agent
+	•	Manus is responsible for executing the ingestion plan described in Part 1.  It must interface with data sources, handle scheduling, manage retries, log provenance and raise alerts.  The prompt for Manus should instruct it to:
+	•	Read the master registry table and identify sources requiring action (active vs pending).  For each source, call the appropriate ingestion script (API call, file download, scraper, or manual upload request).  If a source has needs_key=true, skip automated retrieval and notify the admin.
+	•	After ingestion, perform validation checks and update the provenance ledger.  If anomalies or gaps are detected, create Data Gap Tickets and set the dataset status accordingly.
+	•	Translate any textual metadata into both languages using the translation engine and glossary.
+	•	Trigger downstream updates to dashboards and caches.
+	•	Maintain logs of all steps for auditing.  Ensure idempotence: rerunning the ingestion should not create duplicate records.
+	•	The Manus prompt must emphasise non‑hallucination, adherence to licensing constraints, and strict separation of parallel data streams (e.g. IRG vs DFA).  It should log any manual interventions and maintain an audit trail.
+
+3.2 Maher AI – Founder Assistant & Super Admin Companion
+	•	Purpose: create a high‑level AI agent named Maher AI (after the platform’s founder) that acts as a super‑administrator companion and strategic advisor.  Maher AI should:
+	•	Assist the founder with brainstorming improvements to site design, visualisations, indicator definitions and new features.  It can draw upon the full registry and existing content to suggest additional analyses (e.g., correlation between conflict intensity and inflation, or interactive maps linking aid flows to conflict events).
+	•	Write or adjust AI prompts for sector‑specific agents or the user‑facing assistant, ensuring they remain aligned with YETO’s policies.
+	•	Review changes proposed by other agents or developers, highlighting potential issues (licensing conflicts, technical constraints) and suggesting fixes.
+	•	Act as a back‑end developer: it can produce code snippets or pseudo‑code for charts, data transformations or API calls.  It should adhere to YETO’s programming standards (documented in the codebase), using languages such as Python for ETL and a JavaScript framework (e.g., React with charting library) for front‑end visualisations.
+	•	Provide continuous learning: monitor site usage, identify frequent user queries, and suggest improvements to data coverage or explanatory content.  It should simulate user interactions to test features and raise bugs.
+	•	Interact via a secure admin interface, accessible only to authorised super admins.  This agent should never publish directly to the public site without human approval.
+	•	Prompt Design: Maher AI’s prompt must include context about YETO’s purpose, data sources, quality standards, and platform structure.  It should instruct the agent to propose enhancements but always reference the registry and methodology.  The prompt must emphasise that Maher AI cannot generate or invent data; all suggestions must be based on existing sources or explicit requests for new sources.  The agent must maintain humility, transparency and policy grounding, reflecting the founder’s style.
+
+3.3 Sector‑Specific Agents
+	•	For each major sector (e.g., Macroeconomy, Banking & Finance, Food Security, Aid Flows, Conflict Economy, Prices & Cost of Living), create specialised AI agents trained on the relevant data and literature.  Their tasks include:
+	•	Answering technical questions in Q&A sessions or within the interactive dashboards (e.g., “How does the IRG inflation rate compare with the DFA inflation rate for 2025?”).  They should cite multiple sources and explain methodology differences.
+	•	Suggesting new visualisations, statistical analyses or indicators for their sector.  For example, the Food Security agent might propose combining WFP price data with FAO crop production to create a food affordability index.
+	•	Monitoring new publications related to their sector via the source discovery engine.  When a new report is discovered (e.g., a UNDP poverty study), the agent should summarise its content and recommend ingestion to the registry review queue.
+	•	Ensuring that the sector pages remain current, informative and balanced, with bilingual descriptions and appropriate caveats.
+	•	Each agent’s prompt should include: sector definition; list of primary and secondary sources; guidelines for reliability assessment; instructions to cite evidence; translation and glossary policies; and instructions to refrain from hallucination or unsupported conclusions.  Agents should be able to defer to the Maher AI or Manus when tasks fall outside their scope (e.g., complex code changes).
+
+3.4 User‑Facing Conversational Assistant
+	•	Provide an interactive chat assistant on YETO’s public site.  This assistant should:
+	•	Answer user questions about Yemen’s economy, humanitarian situation and data, pulling facts from YETO’s databases and documents.  It must cite sources using the citation style (e.g., ) to maintain transparency.
+	•	Explain methodology, definitions and caveats.  When a user asks for an indicator, the assistant should provide the value, its source, reliability grade and date.  It should also mention any conflicting sources and direct users to the detailed view.
+	•	Handle bilingual queries and respond in the user’s language (Arabic or English), using the same translation engine and glossary as the rest of the platform.
+	•	Offer guided tours through the site’s features (e.g., “To explore macroeconomic trends, go to the Dashboard, select Macroeconomy and choose GDP growth from the drop‑down”).
+	•	Escalate complex or off‑topic questions to relevant sector agents or to Maher AI.  It should avoid speculating on unverified information and abide by YETO’s privacy and compliance policies.
+	•	The assistant’s prompt must incorporate YETO’s mission and emphasise non‑hallucination, citation of sources, dual‑language operation, and safe handling of sanctions or sensitive topics.  It must not reveal internal processes or AI chain‑of‑thought.
+
+3.5 Dynamic Learning & Continuous Improvement
+	•	Implement a feedback loop where AI agents learn from user interactions and site analytics.  Log user queries, track which data is most frequently accessed and identify gaps (e.g., users ask repeatedly for a statistic not currently available).  Use this information to prioritise new data acquisition via the discovery engine and to update the methodology or glossary accordingly.
+	•	Enable AI agents to suggest visualisation improvements: for example, if users often compare inflation and exchange rate movements, the Macroeconomy agent could propose a combined chart or scatter plot.  Maher AI reviews and approves these suggestions before they become new dashboard modules.
+	•	Provide a training pipeline for agents: periodically fine‑tune sector agents with updated data and new publications, ensuring they remain current.  For translation, review machine output and update the glossary to reflect evolving terminology.
+
+Part 4: Implementation Roadmap & Operational Plan
+
+Objective: outline the phased steps to build and deploy the full YETO platform, ensuring coordination between data ingestion, AI development, front‑end design and governance processes.
+
+4.1 Phase 1 – Foundation & Backfill (Months 1–3)
+	•	Set up infrastructure: instantiate databases for the data lake, normalised schemas and provenance ledger; deploy translation engine; configure scheduler.
+	•	Finalise the master registry: populate the table described in Part 1 with all sources from the user‑provided registry and any additional credible sources.  Identify sources requiring API keys or manual intervention.
+	•	Develop ingestion scripts: build connectors for high‑priority sources (World Bank, IMF, WFP, FTS, IATI, ACLED, UNHCR, WFP Market Monitor, FAO, fuel price bulletins).  Write documentation for each connector in a CONNECTORS.md file.
+	•	Initial data backfill: run scripts to ingest historical data (2010–present) for all active sources.  Perform validations and load the processed data into the normalised database.  Document any missing years or gaps in the Data Gap Tracker.
+	•	Design the initial database schema: ensure it supports time series, documents, events, translation metadata, provenance and versioning.  Set up API endpoints for the front‑end to query data.
+
+4.2 Phase 2 – Front‑End & AI Development (Months 2–6)
+	•	Front‑end design: build the core pages listed in the YETO sitemap.  Use modern web frameworks (e.g., React, Next.js) with a charting library for dynamic graphs.  Ensure accessibility (WCAG) and support for RTL languages.
+	•	Integrate dashboards: connect the front‑end to the data API to render time‑series charts, tables and maps.  Provide filter menus and regime toggles (IRG vs DFA).  Build modules for each sector page with appropriate indicators and narrative explanations.
+	•	Develop AI agents: implement the Manus ingestion agent first, followed by sector‑specific agents and the user‑facing assistant.  Use the prompts defined in Part 3, integrated with the data API for retrieval.  Train the translation model on economic terminology.  Prototype Maher AI as an internal tool for the founder.
+	•	Add research library & timeline: ingest narrative documents into a search index (e.g., ElasticSearch) and build the Research & Reports page.  Build the Timeline page to display conflict and policy events.  Allow cross‑links from events to data points.
+	•	Implement Data Catalogue & provenance pages: provide a searchable catalogue listing each dataset, its source and update status.  Build the transparency pages described earlier.
+
+4.3 Phase 3 – Quality Assurance & Beta Launch (Months 5–8)
+	•	Conduct extensive QA: test ingestion pipelines, data validations, translation quality, UI functionality and AI agent outputs.  Use the Data Health Dashboard to monitor ingestion jobs and fix issues.
+	•	User testing: invite beta testers (experts from academia, NGOs, donors, Yemeni institutions).  Collect feedback on usability, data coverage, narrative clarity and AI responses.  Use this feedback to refine the interface, prompts and documentation.
+	•	Security & compliance audit: review licensing obligations, ensure sanctions lists are correctly displayed with legal notices, verify that no personal data leaks occur, and test resilience against injection attacks or misuses of AI.
+	•	Finalise documentation: complete the Methodology Manual, Data Catalogue, Glossary and Data Stewardship manual.  Provide training materials for site contributors and data stewards.
+	•	Launch the public beta: release the platform publicly with core features.  Provide a feedback mechanism for users to report errors or suggest new sources.  Monitor system load and performance.
+
+4.4 Phase 4 – Full Release & Continuous Improvement (Months 8–12 and ongoing)
+	•	Expand data coverage: integrate the remaining Pending sources as licences or keys are obtained.  Continue adding newly discovered sources through the discovery engine.  Develop connectors for high‑value datasets identified by users (e.g., energy infrastructure data, domestic telephone penetration, etc.).
+	•	Enhance AI capabilities: refine sector agents with additional training; expand Maher AI’s abilities to include code generation for new chart types or analytics; develop functionality to automatically generate summary reports for donors or policymakers based on current data.
+	•	Introduce advanced analytics: incorporate machine learning models to forecast inflation, simulate humanitarian funding gaps under different scenarios, or detect anomalies in trade flows.  Ensure these models are transparent and include explanation components.
+	•	Expand visualisations & interactive tools: add comparative dashboards (e.g., Yemen vs regional peers), scenario simulation modules (allow users to adjust assumptions), and custom data export tools.  Implement interactive timeline overlays (combine conflict events and economic indicators) and map‑based displays.
+	•	Community & partner integration: enable registered partners to upload data or share reports directly through the contributor portal.  Provide guidelines and training on data formatting and metadata.  Encourage local institutions (ministries, NGOs) to share data through YETO, improving coverage.
+	•	Continuous monitoring & updates: run regular satisfaction surveys, track site usage metrics, and maintain an active Data Gap Ticket backlog.  Update documentation and the glossary as needed.  Conduct annual methodological reviews and publish updates.
+
+4.5 Beyond Year 1 – Long‑Term Vision
+	•	Regional expansion: adapt the YETO model to other fragile states or conflict economies.  Use the architecture as a template for other observatories.
+	•	Integration with decision‑support tools: collaborate with policymakers and donors to integrate YETO indicators into programme design, risk assessments and early warning systems.
+	•	Academic partnerships: encourage researchers to use YETO data for peer‑reviewed studies, providing an API for programmatic access and ensuring proper citations.
+	•	Sustainability: explore funding models (donor support, institutional partnerships) to ensure YETO’s long‑term operation and independence.  Maintain open‑source components where possible and contribute improvements back to the community.
+
+Conclusion
+
+This plan integrates the full breadth of information provided in the January 2026 master registry and additional materials.  It covers data ingestion, quality assurance, bilingualism, AI agent architecture, dynamic site design and a phased implementation roadmap.  By following this plan, YETO can become a globally recognised reference for Yemen’s economic and humanitarian data, offering unprecedented transparency and enabling evidence‑based decision‑making.  The combination of robust data integration, rigorous methodology, intelligent agents and dynamic user experiences will ensure that the platform not only launches successfully but continues to evolve and excel in the years ahead.
